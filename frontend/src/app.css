@@ -42,8 +42,9 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-feature-settings: "tnum" 1; /* tabular numbers everywhere */
+  font-feature-settings: "tnum" 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============ Score bug ============ */
@@ -98,7 +99,6 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Score flash on change */
 @keyframes score-flash {
   0%   { background: color-mix(in srgb, var(--accent) 45%, transparent); }
   100% { background: transparent; }
@@ -108,7 +108,6 @@ html, body {
   animation: score-flash var(--dur-slow) var(--ease);
 }
 
-/* Score digit roll */
 @keyframes roll-in {
   from { transform: translateY(60%); opacity: 0; }
   to   { transform: translateY(0);   opacity: 1; }
@@ -126,6 +125,7 @@ html, body {
   padding: 6px 12px;
   background: var(--panel);
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-strong);
   border-radius: 2px;
   font-family: var(--font-mono);
@@ -171,15 +171,16 @@ html, body {
   padding: 4px 10px;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #fff;
   border-left: 3px solid var(--accent, var(--team-a));
+  z-index: 2;
 }
 
-/* Vignette */
 .video-frame::after {
   content: "";
   position: absolute;
@@ -190,6 +191,7 @@ html, body {
     transparent 55%,
     rgba(0, 0, 0, 0.45) 100%
   );
+  z-index: 1;
 }
 
 /* ============ Lower third ============ */
@@ -201,6 +203,7 @@ html, body {
   flex-direction: column;
   gap: 4px;
   animation: slide-in-left var(--dur-slow) var(--ease) both;
+  z-index: 3;
 }
 
 @keyframes slide-in-left {
@@ -232,6 +235,7 @@ html, body {
   border: 1px solid var(--border-strong);
   background: var(--panel);
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--text);
   font-family: var(--font-body);
   font-weight: 500;
