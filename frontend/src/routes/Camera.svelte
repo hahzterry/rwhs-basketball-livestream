@@ -28,11 +28,9 @@
 
     // Update local metadata based on phase
     $effect(() => {
-        // When mode store changes, update local phase
         if ($mode !== phase) {
             phase = $mode;
 
-            // Update metadata values when phase changes
             if (
                 phase === "semi" &&
                 !["game1", "game2"].includes(metadata.game)
@@ -53,7 +51,7 @@
         phase === "semi" ? ["game1", "game2"] : ["angle1", "angle2"],
     );
 
-    let metadataLabel = $derived(phase === "semi" ? "比賽" : "視角");
+    let metadataLabel = $derived(phase === "semi" ? "Game" : "Angle");
 
     // WebSocket Connection
     function connectWebSocket() {
@@ -71,16 +69,13 @@
             ws.onclose = () => {
                 console.log("WebSocket disconnected");
                 if (wsConnection === ws) {
-                    // Prevent action if a new connection replaced this one
                     wsConnection = null;
                     $connectionState.websocket = "disconnected";
-                    // Try to reconnect after a delay if not intentionally closed
                     setTimeout(() => {
                         if (
                             $connectionState.websocket !== "connected" &&
                             !localRoom?.state
                         ) {
-                            // Check if component is still mounted implicitly
                             connectWebSocket();
                         }
                     }, 3000);
@@ -100,9 +95,9 @@
                     const data = JSON.parse(event.data);
                     if (data.phase && data.phase !== phase) {
                         console.log("Mode changed via WebSocket:", data.phase);
-                        phase = data.phase; // Update local phase
-                        $mode = data.phase; // Update mode store
-                        updateMetadata(); // Update metadata when phase changes
+                        phase = data.phase;
+                        $mode = data.phase;
+                        updateMetadata();
                     }
                 } catch (err) {
                     console.error("Error processing WebSocket message:", err);
@@ -118,9 +113,8 @@
     async function connectLiveKit() {
         try {
             $connectionState.livekit = "connecting";
-            const currentPhase = phase; // Use stable value within async function
+            const currentPhase = phase;
 
-            // Get token from backend
             const apiBaseUrl =
                 import.meta.env.VITE_API_URL || "http://localhost:8080";
             const response = await fetch(
@@ -134,11 +128,9 @@
                 );
             }
 
-            // Debug the raw response before parsing
             const responseText = await response.text();
             console.log("Token API response:", responseText);
 
-            // Try to parse the response as JSON
             let tokenData;
             try {
                 tokenData = JSON.parse(responseText);
@@ -151,23 +143,20 @@
 
             const { token, room: roomName } = tokenData;
 
-            // Create LocalTracks (camera and microphone)
             const tracks = await createLocalTracks({
                 audio: true,
-                video: selectedDeviceId ? 
-                    { deviceId: { exact: selectedDeviceId } } : 
-                    true,
+                video: selectedDeviceId
+                    ? { deviceId: { exact: selectedDeviceId } }
+                    : true,
             });
-            
-            // Store reference to video track
-            const videoTrack = tracks.find(track => track.kind === "video");
+
+            const videoTrack = tracks.find((track) => track.kind === "video");
             if (videoTrack) {
                 currentVideoTrack = videoTrack;
             }
 
-            // Create and connect room
             const room = new Room();
-            localRoom = room; // Assign to state
+            localRoom = room;
 
             try {
                 const livekitUrl = import.meta.env.VITE_LIVEKIT_URL;
@@ -178,7 +167,6 @@
 
                 localParticipant = room.localParticipant;
 
-                // Ensure localParticipant is defined
                 if (localParticipant) {
                     await localParticipant.setMetadata(
                         JSON.stringify({
@@ -187,26 +175,23 @@
                         }),
                     );
 
-                    // Publish video and audio tracks
                     await Promise.all(
                         tracks.map((track) =>
                             localParticipant!.publishTrack(track),
                         ),
                     );
 
-                    // Find the video track
                     const videoTrack = tracks.find(
                         (track) => track.kind === "video",
                     );
                     if (videoTrack) {
-                        // Create video element if it doesn't exist
                         if (!videoElement) {
                             videoElement = document.createElement("video");
                             videoElement.autoplay = true;
                             videoElement.muted = true;
                             videoElement.playsInline = true;
+                            videoElement.className = "camera-video";
 
-                            // Add to container
                             const container =
                                 document.querySelector(".camera-container");
                             if (container) {
@@ -214,13 +199,11 @@
                             }
                         }
 
-                        // Attach video track
                         videoTrack.attach(videoElement);
                         cameraReady = true;
                     }
                 }
 
-                // Set up event listeners
                 room.on(RoomEvent.Disconnected, () => {
                     $connectionState.livekit = "disconnected";
                 });
@@ -235,7 +218,6 @@
             } catch (connectErr: any) {
                 console.error("LiveKit room.connect error:", connectErr);
 
-                // Check for specific API key error
                 if (
                     connectErr.message &&
                     connectErr.message.includes("invalid API key")
@@ -247,7 +229,7 @@
                     );
                 }
 
-                throw connectErr; // Re-throw to be caught by outer try block
+                throw connectErr;
             }
         } catch (err) {
             console.error("LiveKit connection error:", err);
@@ -265,7 +247,6 @@
         }
     }
 
-    // Update metadata when selection changes
     async function updateMetadata() {
         if (!localParticipant) return;
 
@@ -282,15 +263,13 @@
         }
     }
 
-    // Handle phase change
     function handlePhaseChange(e: Event) {
         const target = e.currentTarget as HTMLSelectElement;
         phase = target.value as "semi" | "final";
-        $mode = phase; // Update the global mode store as well
+        $mode = phase;
         updateMetadata();
     }
 
-    // Handle metadata change
     function handleMetadataChange(e: Event) {
         const target = e.currentTarget as HTMLSelectElement;
         if (phase === "semi") {
@@ -301,7 +280,6 @@
         updateMetadata();
     }
 
-    // Clean up on component destruction
     onDestroy(async () => {
         console.log("Camera component destroying");
         if (localRoom) {
@@ -312,75 +290,69 @@
         if (wsConnection) {
             console.log("Closing WebSocket connection");
             wsConnection.close();
-            wsConnection = null; // Ensure state is cleared
+            wsConnection = null;
         }
 
-        // Remove video element if it exists
         if (videoElement && videoElement.parentNode) {
             videoElement.parentNode.removeChild(videoElement);
         }
     });
 
-    // Get available camera devices
     async function getVideoDevices() {
         try {
-            // Request permission before enumerating devices
             await navigator.mediaDevices.getUserMedia({ video: true });
-            
+
             const devices = await navigator.mediaDevices.enumerateDevices();
-            videoDevices = devices.filter(device => device.kind === 'videoinput');
-            console.log('Available video devices:', videoDevices);
-            
-            // If devices found and no device selected yet, select the first one
+            videoDevices = devices.filter(
+                (device) => device.kind === "videoinput",
+            );
+            console.log("Available video devices:", videoDevices);
+
             if (videoDevices.length > 0 && !selectedDeviceId) {
-                // Use the first device by default
                 selectedDeviceId = videoDevices[0].deviceId;
             }
         } catch (err) {
-            console.error('Error getting video devices:', err);
-            publishingError = err instanceof Error ? err.message : 'Cannot access camera';
-        }
-    }
-    
-    // Switch camera
-    async function switchCamera(deviceId: string) {
-        if (!localParticipant || deviceId === selectedDeviceId) return;
-        
-        try {
-            // Create new track with selected device
-            const tracks = await createLocalTracks({
-                audio: false,
-                video: { deviceId: { exact: deviceId } }
-            });
-            
-            const videoTrack = tracks.find(track => track.kind === 'video');
-            if (!videoTrack) throw new Error('No video track found');
-            
-            // Unpublish current video track if it exists
-            if (currentVideoTrack) {
-                await localParticipant.unpublishTrack(currentVideoTrack as Track);
-            }
-            
-            // Publish new track
-            await localParticipant.publishTrack(videoTrack);
-            
-            // Update current track reference
-            currentVideoTrack = videoTrack;
-            selectedDeviceId = deviceId;
-            
-            // Update video element
-            if (videoElement) {
-                videoTrack.attach(videoElement);
-            }
-            
-            cameraReady = true;
-        } catch (err) {
-            console.error('Error switching camera:', err);
-            publishingError = err instanceof Error ? err.message : 'Error switching camera';
+            console.error("Error getting video devices:", err);
+            publishingError =
+                err instanceof Error ? err.message : "Cannot access camera";
         }
     }
 
-    // Initialize when component mounts
+    async function switchCamera(deviceId: string) {
+        if (!localParticipant || deviceId === selectedDeviceId) return;
+
+        try {
+            const tracks = await createLocalTracks({
+                audio: false,
+                video: { deviceId: { exact: deviceId } },
+            });
+
+            const videoTrack = tracks.find((track) => track.kind === "video");
+            if (!videoTrack) throw new Error("No video track found");
+
+            if (currentVideoTrack) {
+                await localParticipant.unpublishTrack(
+                    currentVideoTrack as Track,
+                );
+            }
+
+            await localParticipant.publishTrack(videoTrack);
+
+            currentVideoTrack = videoTrack;
+            selectedDeviceId = deviceId;
+
+            if (videoElement) {
+                videoTrack.attach(videoElement);
+            }
+
+            cameraReady = true;
+        } catch (err) {
+            console.error("Error switching camera:", err);
+            publishingError =
+                err instanceof Error ? err.message : "Error switching camera";
+        }
+    }
+
     onMount(() => {
         console.log("Camera component mounted");
         connectWebSocket();
@@ -390,30 +362,32 @@
 
 <div class="camera-page">
     <header>
-        <h1>手機攝影機</h1>
+        <h1>Mobile Camera</h1>
         <div
             class="connection-status"
             class:connected={$connectionState.livekit === "connected"}
         >
             {#if $connectionState.livekit === "connected"}
-                已連線
+                Connected
             {:else if $connectionState.livekit === "connecting"}
-                連線中...
+                Connecting…
             {:else if $connectionState.livekit === "error"}
-                連線錯誤: {$connectionState.errorMessage}
+                Error: {$connectionState.errorMessage}
             {:else}
-                未連線
+                Disconnected
             {/if}
         </div>
     </header>
 
-    <!-- Connection error display -->
     {#if $connectionState.livekit === "error"}
         <div class="error-overlay">
             <div class="error-message">
-                <h3>連線錯誤</h3>
-                <p>{$connectionState.errorMessage || "無法連線到視訊串流。"}</p>
-                <button onclick={connectLiveKit}>重試連線</button>
+                <h3>Connection Error</h3>
+                <p>
+                    {$connectionState.errorMessage ||
+                        "Unable to connect to the video stream."}
+                </p>
+                <button onclick={connectLiveKit}>Retry Connection</button>
             </div>
         </div>
     {/if}
@@ -422,10 +396,10 @@
         {#if !cameraReady}
             <div class="loading">
                 {#if publishingError}
-                    <p class="error">攝影機連線錯誤: {publishingError}</p>
-                    <button onclick={connectLiveKit}>重試</button>
+                    <p class="error">Camera error: {publishingError}</p>
+                    <button onclick={connectLiveKit}>Retry</button>
                 {:else}
-                    <p>正在連接攝影機...</p>
+                    <p>Connecting camera…</p>
                 {/if}
             </div>
         {/if}
@@ -433,14 +407,14 @@
 
     <div class="controls">
         <div class="form-group">
-            <label for="phase-select">階段:</label>
+            <label for="phase-select">Phase:</label>
             <select
                 id="phase-select"
                 value={phase}
                 onchange={handlePhaseChange}
             >
-                <option value="semi">準決賽</option>
-                <option value="final">決賽</option>
+                <option value="semi">Semi-final</option>
+                <option value="final">Final</option>
             </select>
         </div>
 
@@ -454,31 +428,32 @@
                 {#each metadataOptions as option}
                     <option value={option}>
                         {option === "game1"
-                            ? "比賽 1"
+                            ? "Game 1"
                             : option === "game2"
-                              ? "比賽 2"
+                              ? "Game 2"
                               : option === "angle1"
-                                ? "視角 1"
+                                ? "Angle 1"
                                 : option === "angle2"
-                                  ? "視角 2"
+                                  ? "Angle 2"
                                   : option}
                     </option>
                 {/each}
             </select>
         </div>
-        
-        <!-- Camera selection -->
+
         {#if videoDevices.length > 1}
             <div class="form-group">
-                <label for="camera-select">攝影機:</label>
+                <label for="camera-select">Camera:</label>
                 <select
                     id="camera-select"
                     value={selectedDeviceId}
-                    onchange={(e) => switchCamera((e.target as HTMLSelectElement).value)}
+                    onchange={(e) =>
+                        switchCamera((e.target as HTMLSelectElement).value)}
                 >
                     {#each videoDevices as device}
                         <option value={device.deviceId}>
-                            {device.label || `攝影機 ${videoDevices.indexOf(device) + 1}`}
+                            {device.label ||
+                                `Camera ${videoDevices.indexOf(device) + 1}`}
                         </option>
                     {/each}
                 </select>
@@ -494,7 +469,7 @@
         height: 100vh;
         width: 100%;
         background-color: #f0f0f0;
-        position: relative; /* For error overlay positioning */
+        position: relative;
     }
 
     header {
@@ -532,7 +507,10 @@
         overflow: hidden;
     }
 
-    video {
+    /* Scoped to the dynamically-created video element via a class,
+       since the element is built in JS and never appears in the template. */
+    .camera-container :global(video),
+    .camera-container :global(.camera-video) {
         width: 100%;
         height: 100%;
         object-fit: cover;
@@ -595,7 +573,6 @@
         background-color: #0052a3;
     }
 
-    /* Error overlay styles */
     .error-overlay {
         position: absolute;
         top: 0;
