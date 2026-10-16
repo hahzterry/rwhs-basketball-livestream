@@ -3,7 +3,7 @@
     "backend": {
       "root": "backend",
       "framework": "rust",
-      "entrypoint": "basketball-livestream-backend"
+      "entrypoint": "src/main.rs"
     },
     "frontend": {
       "root": "frontend",
