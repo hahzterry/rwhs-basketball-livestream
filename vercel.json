@@ -3,7 +3,7 @@
     "backend": {
       "root": "backend",
       "framework": "rust",
-      "entrypoint": "Cargo.toml"
+      "entrypoint": "basketball-livestream-backend"
     },
     "frontend": {
       "root": "frontend",
@@ -11,13 +11,7 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": { "service": "backend" }
-    },
-    {
-      "source": "/(.*)",
-      "destination": { "service": "frontend" }
-    }
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
   ]
 }
