@@ -1,0 +1,17 @@
+{
+  "services": {
+    "backend": {
+      "root": "backend",
+      "runtime": "rust",
+      "entrypoint": "Cargo.toml"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
+}
