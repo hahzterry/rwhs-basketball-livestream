@@ -2,7 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
     "backend": {
-      "root": "backend"
+      "root": "backend",
+      "runtime": "rust",
+      "entrypoint": "backend/Cargo.toml"
     },
     "frontend": {
       "root": "frontend",
@@ -12,15 +14,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "destination": { "service": "backend" }
     },
     {
       "source": "/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
+      "destination": { "service": "frontend" }
     }
   ]
 }
